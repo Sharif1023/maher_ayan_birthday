@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum WishStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SiteVisibility {
+  PUBLIC
+  PRIVATE
+  PASSWORD_PROTECTED
+}
+
+model AdminUser {
+  id           String             @id @default(cuid())
+  email        String             @unique @db.VarChar(191)
+  passwordHash String             @db.VarChar(255)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  activity     AdminActivityLog[]
+}
+
+model Media {
+  id                  String            @id @default(cuid())
+  type                MediaType
+  title               String            @default("") @db.VarChar(191)
+  caption             String            @db.Text
+  description         String?           @db.Text
+  category            String?           @db.VarChar(100)
+  storageKey          String            @db.VarChar(500)
+  storageProvider     String            @default("local") @db.VarChar(30)
+  mimeType            String            @db.VarChar(120)
+  sizeBytes           Int
+  originalName        String            @db.VarChar(255)
+  sortOrder           Int               @default(0)
+  featured            Boolean           @default(false)
+  published           Boolean           @default(true)
+  dateTaken           DateTime?
+  timelineMilestoneId String?
+  timelineMilestone   TimelineMilestone? @relation(fields: [timelineMilestoneId], references: [id], onDelete: SetNull)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([type, published, sortOrder])
+  @@index([category])
+  @@index([timelineMilestoneId])
+}
+
+model TimelineMilestone {
+  id          String   @id @default(cuid())
+  month       Int      @unique
+  title       String   @db.VarChar(191)
+  description String?  @db.Text
+  memoryDate  DateTime?
+  sortOrder   Int      @default(0)
+  published   Boolean  @default(true)
+  media       Media[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([published, sortOrder])
+}
+
+model Memory {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(191)
+  description String?  @db.Text
+  category    String?  @db.VarChar(100)
+  memoryDate  DateTime?
+  mediaIds    Json?
+  sortOrder   Int      @default(0)
+  featured    Boolean  @default(false)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([published, sortOrder])
+}
+
+model GalleryCategory {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  slug      String   @unique @db.VarChar(120)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BirthdayWish {
+  id           String     @id @default(cuid())
+  name         String     @db.VarChar(100)
+  relationship String?    @db.VarChar(100)
+  message      String     @db.VarChar(1200)
+  status       WishStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model BirthdayContent {
+  id              Int      @id @default(1)
+  heroTitle       String   @default("One Whole Year of Love") @db.VarChar(191)
+  babyName        String   @default("Maher Ayan") @db.VarChar(191)
+  heroSubtitle    String   @default("Our Little Sunshine Turns ONE!") @db.VarChar(255)
+  heroDescription String   @db.Text
+  storyTitle      String   @default("Our Beautiful Journey Begins") @db.VarChar(191)
+  storyText       String   @db.Text
+  birthdayLetter  String   @db.Text
+  footerMessage   String   @default("Forever our little star.") @db.VarChar(255)
+  updatedAt       DateTime @updatedAt
+}
+
+model WebsiteSetting {
+  id                     Int            @id @default(1)
+  visibility             SiteVisibility @default(PUBLIC)
+  sitePasswordHash       String?        @db.VarChar(255)
+  allowWishes            Boolean        @default(true)
+  backgroundMusicEnabled Boolean        @default(false)
+  searchIndexingEnabled  Boolean        @default(false)
+  siteTitle              String         @default("Maher Ayan | One Whole Year of Love") @db.VarChar(191)
+  metaDescription        String         @db.Text
+  updatedAt              DateTime       @updatedAt
+}
+
+model AdminActivityLog {
+  id        String    @id @default(cuid())
+  adminId   String
+  action    String    @db.VarChar(100)
+  entity    String    @db.VarChar(100)
+  entityId  String?   @db.VarChar(191)
+  createdAt DateTime  @default(now())
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
